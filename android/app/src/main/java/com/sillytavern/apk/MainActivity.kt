@@ -102,9 +102,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun copyAssetFolder(assetPath: String, destinationDir: File) {
-        val assets = assets.list(assetPath) ?: return
-        if (assets.isEmpty()) {
-            assets.open(assetPath).use { input ->
+        val assetManager = assets
+        val entries = assetManager.list(assetPath) ?: return
+        if (entries.isEmpty()) {
+            assetManager.open(assetPath).use { input ->
                 destinationDir.outputStream().use { output ->
                     input.copyTo(output)
                 }
@@ -116,12 +117,12 @@ class MainActivity : AppCompatActivity() {
             destinationDir.mkdirs()
         }
 
-        for (asset in assets) {
+        for (asset in entries) {
             val childAssetPath = "$assetPath/$asset"
             val childDestination = File(destinationDir, asset)
-            val childEntries = assets.list(childAssetPath)
+            val childEntries = assetManager.list(childAssetPath)
             if (childEntries == null || childEntries.isEmpty()) {
-                assets.open(childAssetPath).use { input ->
+                assetManager.open(childAssetPath).use { input ->
                     childDestination.outputStream().use { output ->
                         input.copyTo(output)
                     }
