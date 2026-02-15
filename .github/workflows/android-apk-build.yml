@@ -58,10 +58,22 @@ jobs:
           gradle-version: "8.9"
 
       - name: Build Debug APK
+        id: gradle_build
+        continue-on-error: true
         working-directory: android
         run: |
           set -o pipefail
           gradle --no-daemon --stacktrace --build-cache :app:assembleDebug 2>&1 | tee build.log
+
+      - name: Emit Gradle Failure Annotation
+        if: steps.gradle_build.outcome != 'success'
+        working-directory: android
+        run: |
+          ROOT_CAUSE=$(grep -E "^(> )?(Execution failed for task|A problem occurred|FAILURE: Build failed|\\* What went wrong:|Caused by:)" build.log | tail -n 20 | tr '\n' ' ' | sed 's/"/\\"/g')
+          if [ -z "$ROOT_CAUSE" ]; then
+            ROOT_CAUSE=$(tail -n 60 build.log | tr '\n' ' ' | sed 's/"/\\"/g')
+          fi
+          echo "::error title=Gradle Build Failed::$ROOT_CAUSE"
 
       - name: Publish Build Log Summary
         if: always()
@@ -84,3 +96,7 @@ jobs:
         with:
           name: android-gradle-build-log
           path: android/build.log
+
+      - name: Fail If Gradle Build Failed
+        if: steps.gradle_build.outcome != 'success'
+        run: exit 1
