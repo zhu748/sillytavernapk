@@ -57,6 +57,10 @@ jobs:
         with:
           gradle-version: "8.9"
 
+      - name: Write local.properties for Android SDK
+        run: |
+          echo "sdk.dir=${ANDROID_SDK_ROOT}" > android/local.properties
+
       - name: Build Debug APK
         id: gradle_build
         continue-on-error: true
