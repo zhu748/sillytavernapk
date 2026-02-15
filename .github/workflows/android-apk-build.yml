@@ -59,10 +59,28 @@ jobs:
 
       - name: Build Debug APK
         working-directory: android
-        run: gradle --no-daemon --stacktrace --build-cache :app:assembleDebug
+        run: |
+          set -o pipefail
+          gradle --no-daemon --stacktrace --build-cache :app:assembleDebug 2>&1 | tee build.log
+
+      - name: Publish Build Log Summary
+        if: always()
+        working-directory: android
+        run: |
+          echo "## Gradle Build Log (last 200 lines)" >> "$GITHUB_STEP_SUMMARY"
+          echo '```text' >> "$GITHUB_STEP_SUMMARY"
+          tail -n 200 build.log >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: sillytavern-debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Upload Gradle Log Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-gradle-build-log
+          path: android/build.log
