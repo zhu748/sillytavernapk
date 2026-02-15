@@ -68,7 +68,11 @@ $copyItems = @(
 foreach ($item in $copyItems) {
     $sourcePath = Join-Path $repoRoot $item
     if (-not (Test-Path $sourcePath)) {
-        throw "Required file or directory missing: $item"
+        if ($item -eq "plugins" -or $item -eq "data") {
+            New-Item -ItemType Directory -Force $sourcePath | Out-Null
+        } else {
+            throw "Required file or directory missing: $item"
+        }
     }
     Copy-Item -Recurse -Force $sourcePath $assetsAppDir
 }
