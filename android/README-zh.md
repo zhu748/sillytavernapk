@@ -20,6 +20,13 @@ tools\prepare-android-assets.ps1
 
 在 Android Studio 打开 `android/` 目录后构建（Build > Build APK）。
 
+或在命令行构建（Windows）：
+
+```powershell
+cd android
+.\gradlew.bat assembleDebug
+```
+
 产物路径：
 
 ```text
