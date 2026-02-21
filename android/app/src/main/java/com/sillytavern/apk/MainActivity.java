@@ -157,10 +157,10 @@ public class MainActivity extends AppCompatActivity {
     private void openSettingsDialog() {
         JSONObject settingsJson = readSettingsJson(settingsFile);
         String envJson = settingsJson.optJSONObject("env") != null
-            ? settingsJson.optJSONObject("env").toString(2)
+            ? settingsJson.optJSONObject("env").toString()
             : "{}";
         String configJson = settingsJson.optJSONObject("config") != null
-            ? settingsJson.optJSONObject("config").toString(2)
+            ? settingsJson.optJSONObject("config").toString()
             : "{}";
 
         LinearLayout container = new LinearLayout(this);
