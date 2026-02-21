@@ -62,29 +62,42 @@ jobs:
         run: |
           echo "sdk.dir=${ANDROID_SDK_ROOT}" > android/local.properties
 
-      - name: Build Debug APK
+      - name: Build Debug and Release APK
         id: gradle_build
         continue-on-error: true
         working-directory: android
         run: |
           set -o pipefail
-          gradle --no-daemon --stacktrace --build-cache :app:assembleDebug 2>&1 | tee build.log
+          gradle --no-daemon --stacktrace --build-cache :app:assembleDebug :app:assembleRelease 2>&1 | tee build.log
 
-      - name: Detect APK Output
-        id: detect_apk
+      - name: Detect Debug APK Output
+        id: detect_debug_apk
         if: always()
         run: |
-          APK_PATH=$(find android/app/build/outputs -type f -name "*.apk" | head -n 1 || true)
+          APK_PATH=$(find android/app/build/outputs/apk/debug -type f -name "*.apk" | head -n 1 || true)
           if [ -n "$APK_PATH" ]; then
             echo "apk_path=$APK_PATH" >> "$GITHUB_OUTPUT"
-            echo "Detected APK: $APK_PATH"
+            echo "Detected debug APK: $APK_PATH"
           else
             echo "apk_path=" >> "$GITHUB_OUTPUT"
-            echo "No APK detected under android/app/build/outputs"
+            echo "No debug APK detected under android/app/build/outputs/apk/debug"
+          fi
+
+      - name: Detect Release APK Output
+        id: detect_release_apk
+        if: always()
+        run: |
+          APK_PATH=$(find android/app/build/outputs/apk/release -type f -name "*.apk" | head -n 1 || true)
+          if [ -n "$APK_PATH" ]; then
+            echo "apk_path=$APK_PATH" >> "$GITHUB_OUTPUT"
+            echo "Detected release APK: $APK_PATH"
+          else
+            echo "apk_path=" >> "$GITHUB_OUTPUT"
+            echo "No release APK detected under android/app/build/outputs/apk/release"
           fi
 
       - name: Emit Gradle Failure Annotation
-        if: ${{ steps.detect_apk.outputs.apk_path == '' }}
+        if: ${{ steps.detect_release_apk.outputs.apk_path == '' }}
         working-directory: android
         run: |
           ROOT_CAUSE=$(grep -E "^(> )?(Execution failed for task|A problem occurred|FAILURE: Build failed|\\* What went wrong:|Caused by:)" build.log | tail -n 20 | tr '\n' ' ' | sed 's/"/\\"/g')
@@ -103,11 +116,18 @@ jobs:
           echo '```' >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload APK Artifact
-        if: ${{ steps.detect_apk.outputs.apk_path != '' }}
+        if: ${{ steps.detect_debug_apk.outputs.apk_path != '' }}
         uses: actions/upload-artifact@v4
         with:
           name: sillytavern-debug-apk
-          path: ${{ steps.detect_apk.outputs.apk_path }}
+          path: ${{ steps.detect_debug_apk.outputs.apk_path }}
+
+      - name: Upload Release APK Artifact
+        if: ${{ steps.detect_release_apk.outputs.apk_path != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: sillytavern-release-apk
+          path: ${{ steps.detect_release_apk.outputs.apk_path }}
 
       - name: Upload Gradle Log Artifact
         if: always()
@@ -117,11 +137,11 @@ jobs:
           path: android/build.log
 
       - name: Dump Build Output Tree
-        if: ${{ steps.detect_apk.outputs.apk_path == '' }}
+        if: ${{ steps.detect_release_apk.outputs.apk_path == '' }}
         run: |
-          echo "No APK found. Listing android/app/build/outputs:"
+          echo "No release APK found. Listing android/app/build/outputs:"
           find android/app/build/outputs -maxdepth 6 -type f | sort || true
 
-      - name: Fail If APK Not Generated
-        if: ${{ steps.detect_apk.outputs.apk_path == '' }}
+      - name: Fail If Release APK Not Generated
+        if: ${{ steps.detect_release_apk.outputs.apk_path == '' }}
         run: exit 1
