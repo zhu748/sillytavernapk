@@ -262,7 +262,7 @@ public class MainActivity extends AppCompatActivity {
             if (!file.exists()) {
                 return new JSONObject("{\"env\":{},\"config\":{\"port\":8000,\"listen\":false}}\n");
             }
-            String content = Files.readString(file.toPath(), StandardCharsets.UTF_8);
+            String content = new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
             JSONObject parsed = new JSONObject(content);
             if (!parsed.has("env")) {
                 parsed.put("env", new JSONObject());
@@ -298,7 +298,7 @@ public class MainActivity extends AppCompatActivity {
             //noinspection ResultOfMethodCallIgnored
             file.getParentFile().mkdirs();
         }
-        Files.writeString(file.toPath(), jsonObject.toString(2), StandardCharsets.UTF_8);
+        Files.write(file.toPath(), jsonObject.toString(2).getBytes(StandardCharsets.UTF_8));
     }
 
     private void unpackAssetsIfNeeded(Context context, File nodeAppRoot) {
