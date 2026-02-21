@@ -1,4 +1,4 @@
-﻿package com.sillytavern.apk;
+package com.sillytavern.apk;
 
 import android.content.Context;
 import android.content.Intent;
