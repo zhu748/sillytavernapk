@@ -70,8 +70,21 @@ jobs:
           set -o pipefail
           gradle --no-daemon --stacktrace --build-cache :app:assembleDebug 2>&1 | tee build.log
 
+      - name: Detect APK Output
+        id: detect_apk
+        if: always()
+        run: |
+          APK_PATH=$(find android/app/build/outputs -type f -name "*.apk" | head -n 1 || true)
+          if [ -n "$APK_PATH" ]; then
+            echo "apk_path=$APK_PATH" >> "$GITHUB_OUTPUT"
+            echo "Detected APK: $APK_PATH"
+          else
+            echo "apk_path=" >> "$GITHUB_OUTPUT"
+            echo "No APK detected under android/app/build/outputs"
+          fi
+
       - name: Emit Gradle Failure Annotation
-        if: ${{ hashFiles('android/app/build/outputs/apk/debug/app-debug.apk') == '' }}
+        if: ${{ steps.detect_apk.outputs.apk_path == '' }}
         working-directory: android
         run: |
           ROOT_CAUSE=$(grep -E "^(> )?(Execution failed for task|A problem occurred|FAILURE: Build failed|\\* What went wrong:|Caused by:)" build.log | tail -n 20 | tr '\n' ' ' | sed 's/"/\\"/g')
@@ -90,10 +103,11 @@ jobs:
           echo '```' >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload APK Artifact
+        if: ${{ steps.detect_apk.outputs.apk_path != '' }}
         uses: actions/upload-artifact@v4
         with:
           name: sillytavern-debug-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: ${{ steps.detect_apk.outputs.apk_path }}
 
       - name: Upload Gradle Log Artifact
         if: always()
@@ -102,6 +116,12 @@ jobs:
           name: android-gradle-build-log
           path: android/build.log
 
+      - name: Dump Build Output Tree
+        if: ${{ steps.detect_apk.outputs.apk_path == '' }}
+        run: |
+          echo "No APK found. Listing android/app/build/outputs:"
+          find android/app/build/outputs -maxdepth 6 -type f | sort || true
+
       - name: Fail If APK Not Generated
-        if: ${{ hashFiles('android/app/build/outputs/apk/debug/app-debug.apk') == '' }}
+        if: ${{ steps.detect_apk.outputs.apk_path == '' }}
         run: exit 1
